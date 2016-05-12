@@ -32,7 +32,7 @@ disqus: ''
 permalink: /:year/:month/:title
 paginate: 5
 
-highlighter: pygments§
+highlighter: pygments
 markdown: kramdown
 
 kramdown:
