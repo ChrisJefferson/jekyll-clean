@@ -1,0 +1,63 @@
+{
+ "nodes":[
+  {"name":"V1","group":0}
+,  {"name":"V2","group":0}
+,  {"name":"V3","group":0}
+,  {"name":"V4","group":0}
+,  {"name":"V5","group":0}
+,  {"name":"V6","group":0}
+,  {"name":"V7","group":0}
+,  {"name":"V8","group":0}
+,  {"name":"V9","group":0}
+,  {"name":"V10","group":0}
+,  {"name":"V11","group":0}
+,  {"name":"V12","group":0}
+,  {"name":"V13","group":0}
+,  {"name":"V14","group":0}
+,  {"name":"V15","group":0}
+,  {"name":"V16","group":0}
+,  {"name":"V17","group":0}
+,  {"name":"V18","group":0}
+,  {"name":"V19","group":0}
+,  {"name":"V20","group":0}
+,  {"name":"V21","group":0}
+ ],
+ "links":[
+{"source": 0 , "target":  9 }
+,{"source": 0 , "target":  10 }
+,{"source": 0 , "target":  11 }
+,{"source": 0 , "target":  12 }
+,{"source": 1 , "target":  9 }
+,{"source": 1 , "target":  13 }
+,{"source": 1 , "target":  14 }
+,{"source": 1 , "target":  15 }
+,{"source": 2 , "target":  9 }
+,{"source": 2 , "target":  16 }
+,{"source": 2 , "target":  17 }
+,{"source": 2 , "target":  18 }
+,{"source": 3 , "target":  10 }
+,{"source": 3 , "target":  13 }
+,{"source": 3 , "target":  16 }
+,{"source": 3 , "target":  19 }
+,{"source": 4 , "target":  11 }
+,{"source": 4 , "target":  14 }
+,{"source": 4 , "target":  17 }
+,{"source": 4 , "target":  19 }
+,{"source": 5 , "target":  12 }
+,{"source": 5 , "target":  15 }
+,{"source": 5 , "target":  18 }
+,{"source": 5 , "target":  19 }
+,{"source": 6 , "target":  10 }
+,{"source": 6 , "target":  15 }
+,{"source": 6 , "target":  17 }
+,{"source": 6 , "target":  20 }
+,{"source": 7 , "target":  12 }
+,{"source": 7 , "target":  14 }
+,{"source": 7 , "target":  16 }
+,{"source": 7 , "target":  20 }
+,{"source": 8 , "target":  11 }
+,{"source": 8 , "target":  13 }
+,{"source": 8 , "target":  18 }
+,{"source": 8 , "target":  20 }
+ ]
+}

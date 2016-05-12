@@ -1,0 +1,681 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1200" height="406" onload="init(evt)" viewBox="0 0 1200 406" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<defs >
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#eeeeee" offset="5%" />
+		<stop stop-color="#eeeeb0" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	.func_g:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	var details, svg;
+	function init(evt) { 
+		details = document.getElementById("details").firstChild; 
+		svg = document.getElementsByTagName("svg")[0];
+	}
+	function s(info) { details.nodeValue = "Function: " + info; }
+	function c() { details.nodeValue = ' '; }
+	function find_child(parent, name, attr) {
+		var children = parent.childNodes;
+		for (var i=0; i<children.length;i++) {
+			if (children[i].tagName == name)
+				return (attr != undefined) ? children[i].attributes[attr].value : children[i];
+		}
+		return;
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_"+attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_"+attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_"+attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes["width"].value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)/,"");
+		t.attributes["x"].value = parseFloat(r.attributes["x"].value) +3;
+		
+		// Smaller than this size won't fit anything
+		if (w < 2*18*0.59) {
+			t.textContent = "";
+			return;
+		}
+		
+		t.textContent = txt;
+		// Fit in full text width
+		if (/^ *$/.test(txt) || t.getSubStringLength(0, txt.length) < w)
+			return;
+		
+		for (var x=txt.length-2; x>0; x--) {
+			if (t.getSubStringLength(0, x+2) <= w) { 
+				t.textContent = txt.substring(0,x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = (parseFloat(e.attributes["x"].value) - x - 10) * ratio + 10;
+				if(e.tagName == "text") e.attributes["x"].value = find_child(e.parentNode, "rect", "x") + 3;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseFloat(e.attributes["width"].value) * ratio;
+			}
+		}
+		
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_child(c[i], x-10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = 10;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseInt(svg.width.baseVal.value) - (10*2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) { 
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr["width"].value);
+		var xmin = parseFloat(attr["x"].value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr["y"].value);
+		var ratio = (svg.width.baseVal.value - 2*10) / width;
+		
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+		
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "1.0";
+		
+		var el = document.getElementsByTagName("g");
+		for(var i=0;i<el.length;i++){
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a["x"].value);
+			var ew = parseFloat(a["width"].value);
+			// Is it an ancestor
+			if (0 == 0) {
+				var upstack = parseFloat(a["y"].value) > ymin;
+			} else {
+				var upstack = parseFloat(a["y"].value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.style["opacity"] = "0.5";
+					zoom_parent(e);
+					e.onclick = function(e){unzoom(); zoom(this);};
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.style["display"] = "none";
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.style["display"] = "none";
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					e.onclick = function(e){zoom(this);};
+					update_text(e);
+				}
+			}
+		}
+	}
+	function unzoom() {
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "0.0";
+		
+		var el = document.getElementsByTagName("g");
+		for(i=0;i<el.length;i++) {
+			el[i].style["display"] = "block";
+			el[i].style["opacity"] = "1";
+			zoom_reset(el[i]);
+			update_text(el[i]);
+		}
+	}	
+]]>
+</script>
+<rect x="0.0" y="0" width="1200.0" height="406.0" fill="url(#background)"  />
+<text text-anchor="middle" x="600.00" y="36" font-size="23" font-family="Verdana" fill="rgb(0,0,0)"  >Flame Graph</text>
+<text text-anchor="" x="10.00" y="383" font-size="18" font-family="Verdana" fill="rgb(0,0,0)" id="details" > </text>
+<text text-anchor="" x="10.00" y="36" font-size="18" font-family="Verdana" fill="rgb(0,0,0)" id="unzoom" onclick="unzoom()" style="opacity:0.0;cursor:pointer" >Reset Zoom</text>
+<g class="func_g" onmouseover="s('StabChainForcePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:729 (1,087 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StabChainForcePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:729 (1,087 samples, 0.02%)</title><rect x="156.7" y="97" width="0.3" height="23.0" fill="rgb(211,96,34)" rx="2" ry="2" />
+<text text-anchor="" x="159.70" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('NextRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:983 (120,887 samples, 2.61%)')" onmouseout="c()" onclick="zoom(this)">
+<title>NextRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:983 (120,887 samples, 2.61%)</title><rect x="1082.0" y="193" width="30.8" height="23.0" fill="rgb(236,124,36)" rx="2" ry="2" />
+<text text-anchor="" x="1084.96" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Stabilizer@/Users/caj/reps/gap/gap/lib/oprt.gi:2825 (1,350 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Stabilizer@/Users/caj/reps/gap/gap/lib/oprt.gi:2825 (1,350 samples, 0.03%)</title><rect x="1164.3" y="265" width="0.4" height="23.0" fill="rgb(220,217,22)" rx="2" ry="2" />
+<text text-anchor="" x="1167.31" y="279.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('RRefine@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1041 (18,450 samples, 0.40%)')" onmouseout="c()" onclick="zoom(this)">
+<title>RRefine@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1041 (18,450 samples, 0.40%)</title><rect x="1113.3" y="193" width="4.7" height="23.0" fill="rgb(253,202,48)" rx="2" ry="2" />
+<text text-anchor="" x="1116.26" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (52,554 samples, 1.13%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (52,554 samples, 1.13%)</title><rect x="366.0" y="145" width="13.4" height="23.0" fill="rgb(225,169,54)" rx="2" ry="2" />
+<text text-anchor="" x="368.97" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Maximum@/Users/caj/reps/gap/gap/lib/list.gi:2363 (8,203 samples, 0.18%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Maximum@/Users/caj/reps/gap/gap/lib/list.gi:2363 (8,203 samples, 0.18%)</title><rect x="11.1" y="217" width="2.1" height="23.0" fill="rgb(250,21,39)" rx="2" ry="2" />
+<text text-anchor="" x="14.12" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('OrbitsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:400 (103,738 samples, 2.24%)')" onmouseout="c()" onclick="zoom(this)">
+<title>OrbitsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:400 (103,738 samples, 2.24%)</title><rect x="1082.0" y="145" width="26.4" height="23.0" fill="rgb(235,153,35)" rx="2" ry="2" />
+<text text-anchor="" x="1084.99" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('CopyStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:214 (2,932 samples, 0.06%)')" onmouseout="c()" onclick="zoom(this)">
+<title>CopyStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:214 (2,932 samples, 0.06%)</title><rect x="10.1" y="241" width="0.8" height="23.0" fill="rgb(207,141,10)" rx="2" ry="2" />
+<text text-anchor="" x="13.15" y="255.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StabChainForcePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:729 (1,059 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StabChainForcePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:729 (1,059 samples, 0.02%)</title><rect x="1108.4" y="73" width="0.3" height="23.0" fill="rgb(224,160,48)" rx="2" ry="2" />
+<text text-anchor="" x="1111.45" y="87.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StabilizerFunc@/Users/caj/reps/gap/gap/lib/oprt.gd:765 (1,344 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StabilizerFunc@/Users/caj/reps/gap/gap/lib/oprt.gd:765 (1,344 samples, 0.03%)</title><rect x="1164.3" y="241" width="0.4" height="23.0" fill="rgb(230,191,5)" rx="2" ry="2" />
+<text text-anchor="" x="1167.31" y="255.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('BasePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:1216 (11,308 samples, 0.24%)')" onmouseout="c()" onclick="zoom(this)">
+<title>BasePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:1216 (11,308 samples, 0.24%)</title><rect x="207.9" y="169" width="2.9" height="23.0" fill="rgb(234,98,49)" rx="2" ry="2" />
+<text text-anchor="" x="210.87" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('OrbitsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:238 (83,336 samples, 1.80%)')" onmouseout="c()" onclick="zoom(this)">
+<title>OrbitsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:238 (83,336 samples, 1.80%)</title><rect x="1124.9" y="97" width="21.3" height="23.0" fill="rgb(229,158,0)" rx="2" ry="2" />
+<text text-anchor="" x="1127.93" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ForAll@/Users/caj/reps/gap/gap/lib/coll.gi:1607 (552 samples, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ForAll@/Users/caj/reps/gap/gap/lib/coll.gi:1607 (552 samples, 0.01%)</title><rect x="1153.4" y="73" width="0.2" height="23.0" fill="rgb(235,44,42)" rx="2" ry="2" />
+<text text-anchor="" x="1156.42" y="87.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/list.gi:2387 (8,111 samples, 0.18%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/list.gi:2387 (8,111 samples, 0.18%)</title><rect x="1146.4" y="49" width="2.1" height="23.0" fill="rgb(253,182,26)" rx="2" ry="2" />
+<text text-anchor="" x="1149.42" y="63.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (1,706 samples, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (1,706 samples, 0.04%)</title><rect x="1108.4" y="145" width="0.4" height="23.0" fill="rgb(238,91,21)" rx="2" ry="2" />
+<text text-anchor="" x="1111.41" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ConjugateStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:874 (845 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ConjugateStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:874 (845 samples, 0.02%)</title><rect x="156.4" y="121" width="0.2" height="23.0" fill="rgb(233,203,38)" rx="2" ry="2" />
+<text text-anchor="" x="159.39" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Maximum@/Users/caj/reps/gap/gap/lib/list.gi:2363 (8,025 samples, 0.17%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Maximum@/Users/caj/reps/gap/gap/lib/list.gi:2363 (8,025 samples, 0.17%)</title><rect x="154.3" y="121" width="2.1" height="23.0" fill="rgb(205,2,14)" rx="2" ry="2" />
+<text text-anchor="" x="157.32" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('OrbitsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:238 (230,081 samples, 4.97%)')" onmouseout="c()" onclick="zoom(this)">
+<title>OrbitsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:238 (230,081 samples, 4.97%)</title><rect x="95.5" y="145" width="58.7" height="23.0" fill="rgb(252,100,22)" rx="2" ry="2" />
+<text text-anchor="" x="98.55" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >Orb..</text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/list.gi:1941 (14,744 samples, 0.32%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/list.gi:1941 (14,744 samples, 0.32%)</title><rect x="1149.5" y="97" width="3.8" height="23.0" fill="rgb(235,192,45)" rx="2" ry="2" />
+<text text-anchor="" x="1152.55" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ExtendedT@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:156 (544,070 samples, 11.75%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ExtendedT@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:156 (544,070 samples, 11.75%)</title><rect x="177.7" y="193" width="138.6" height="23.0" fill="rgb(236,139,25)" rx="2" ry="2" />
+<text text-anchor="" x="180.72" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >ExtendedT@/..</text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/list.gi:2387 (8,021 samples, 0.17%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/list.gi:2387 (8,021 samples, 0.17%)</title><rect x="154.3" y="97" width="2.1" height="23.0" fill="rgb(242,33,38)" rx="2" ry="2" />
+<text text-anchor="" x="157.32" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('all (4,632,100 samples, 100%)')" onmouseout="c()" onclick="zoom(this)">
+<title>all (4,632,100 samples, 100%)</title><rect x="10.0" y="337" width="1180.0" height="23.0" fill="rgb(208,227,15)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="351.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Partition@/Users/caj/reps/gap/gap/lib/partitio.gi:38 (9,036 samples, 0.20%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Partition@/Users/caj/reps/gap/gap/lib/partitio.gi:38 (9,036 samples, 0.20%)</title><rect x="10.9" y="241" width="2.3" height="23.0" fill="rgb(218,20,41)" rx="2" ry="2" />
+<text text-anchor="" x="13.91" y="255.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ChangeStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:1028 (1,689 samples, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ChangeStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:1028 (1,689 samples, 0.04%)</title><rect x="1108.4" y="121" width="0.4" height="23.0" fill="rgb(227,88,20)" rx="2" ry="2" />
+<text text-anchor="" x="1111.42" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('AddGeneratorsExtendSchreierTree@/Users/caj/reps/gap/gap/lib/stbc.gi:461 (639 samples, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>AddGeneratorsExtendSchreierTree@/Users/caj/reps/gap/gap/lib/stbc.gi:461 (639 samples, 0.01%)</title><rect x="156.8" y="49" width="0.2" height="23.0" fill="rgb(236,94,7)" rx="2" ry="2" />
+<text text-anchor="" x="159.81" y="63.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/coll.gd:741 (843 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/coll.gd:741 (843 samples, 0.02%)</title><rect x="1189.7" y="289" width="0.2" height="23.0" fill="rgb(219,65,1)" rx="2" ry="2" />
+<text text-anchor="" x="1192.69" y="303.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (904 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (904 samples, 0.02%)</title><rect x="1109.0" y="121" width="0.2" height="23.0" fill="rgb(212,192,15)" rx="2" ry="2" />
+<text text-anchor="" x="1112.02" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('NextRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:983 (255,509 samples, 5.52%)')" onmouseout="c()" onclick="zoom(this)">
+<title>NextRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:983 (255,509 samples, 5.52%)</title><rect x="95.5" y="217" width="65.1" height="23.0" fill="rgb(232,193,19)" rx="2" ry="2" />
+<text text-anchor="" x="98.49" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >Next..</text>
+</g>
+<g class="func_g" onmouseover="s('ORBS_PERMGP_PTS@/Users/caj/reps/gap/gap/lib/oprtperm.gi:65 (56,811 samples, 1.23%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ORBS_PERMGP_PTS@/Users/caj/reps/gap/gap/lib/oprtperm.gi:65 (56,811 samples, 1.23%)</title><rect x="13.2" y="193" width="14.5" height="23.0" fill="rgb(235,4,54)" rx="2" ry="2" />
+<text text-anchor="" x="16.22" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (15,390 samples, 0.33%)')" onmouseout="c()" onclick="zoom(this)">
+<title>SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (15,390 samples, 0.33%)</title><rect x="1114.0" y="121" width="4.0" height="23.0" fill="rgb(208,90,39)" rx="2" ry="2" />
+<text text-anchor="" x="1117.04" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/list.gi:1546 (994 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/list.gi:1546 (994 samples, 0.02%)</title><rect x="1153.3" y="145" width="0.3" height="23.0" fill="rgb(239,63,43)" rx="2" ry="2" />
+<text text-anchor="" x="1156.31" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:2925 (4,558,970 samples, 98.42%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:2925 (4,558,970 samples, 98.42%)</title><rect x="10.0" y="289" width="1161.4" height="23.0" fill="rgb(245,125,13)" rx="2" ry="2" />
+<text text-anchor="" x="13.01" y="303.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:2925</text>
+</g>
+<g class="func_g" onmouseover="s('UndoRefinement@/Users/caj/reps/gap/gap/lib/partitio.gi:301 (1,650 samples, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>UndoRefinement@/Users/caj/reps/gap/gap/lib/partitio.gi:301 (1,650 samples, 0.04%)</title><rect x="1163.4" y="169" width="0.4" height="23.0" fill="rgb(245,10,54)" rx="2" ry="2" />
+<text text-anchor="" x="1166.36" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StabChainSwap@/Users/caj/reps/gap/gap/lib/stbc.gi:755 (478 samples, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StabChainSwap@/Users/caj/reps/gap/gap/lib/stbc.gi:755 (478 samples, 0.01%)</title><rect x="1148.6" y="49" width="0.1" height="23.0" fill="rgb(238,88,49)" rx="2" ry="2" />
+<text text-anchor="" x="1151.59" y="63.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Partition@/Users/caj/reps/gap/gap/lib/partitio.gi:38 (8,889 samples, 0.19%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Partition@/Users/caj/reps/gap/gap/lib/partitio.gi:38 (8,889 samples, 0.19%)</title><rect x="1106.1" y="121" width="2.3" height="23.0" fill="rgb(208,89,28)" rx="2" ry="2" />
+<text text-anchor="" x="1109.15" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Partition@/Users/caj/reps/gap/gap/lib/partitio.gi:38 (8,655 samples, 0.19%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Partition@/Users/caj/reps/gap/gap/lib/partitio.gi:38 (8,655 samples, 0.19%)</title><rect x="154.2" y="145" width="2.2" height="23.0" fill="rgb(240,137,33)" rx="2" ry="2" />
+<text text-anchor="" x="157.16" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/list.gi:1941 (13,725 samples, 0.30%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/list.gi:1941 (13,725 samples, 0.30%)</title><rect x="1109.3" y="121" width="3.5" height="23.0" fill="rgb(240,110,33)" rx="2" ry="2" />
+<text text-anchor="" x="1112.26" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('MeetPartitionStrat@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:194 (1,841,049 samples, 39.75%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MeetPartitionStrat@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:194 (1,841,049 samples, 39.75%)</title><rect x="343.6" y="169" width="469.0" height="23.0" fill="rgb(247,154,18)" rx="2" ry="2" />
+<text text-anchor="" x="346.58" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >MeetPartitionStrat@/Users/caj/reps/gap/gap..</text>
+</g>
+<g class="func_g" onmouseover="s('IsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:69 (1,367 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>IsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:69 (1,367 samples, 0.03%)</title><rect x="1163.0" y="73" width="0.3" height="23.0" fill="rgb(235,160,37)" rx="2" ry="2" />
+<text text-anchor="" x="1165.96" y="87.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ConjugateStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:874 (71,359 samples, 1.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ConjugateStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:874 (71,359 samples, 1.54%)</title><rect x="1171.5" y="289" width="18.2" height="23.0" fill="rgb(243,165,39)" rx="2" ry="2" />
+<text text-anchor="" x="1174.51" y="303.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/list.gi:2387 (8,199 samples, 0.18%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/list.gi:2387 (8,199 samples, 0.18%)</title><rect x="11.1" y="193" width="2.1" height="23.0" fill="rgb(205,124,50)" rx="2" ry="2" />
+<text text-anchor="" x="14.12" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('CopyStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:214 (3,705 samples, 0.08%)')" onmouseout="c()" onclick="zoom(this)">
+<title>CopyStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:214 (3,705 samples, 0.08%)</title><rect x="1081.0" y="169" width="0.9" height="23.0" fill="rgb(229,118,13)" rx="2" ry="2" />
+<text text-anchor="" x="1083.96" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (1,926 samples, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (1,926 samples, 0.04%)</title><rect x="1112.8" y="193" width="0.5" height="23.0" fill="rgb(211,229,31)" rx="2" ry="2" />
+<text text-anchor="" x="1115.77" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (1,673 samples, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (1,673 samples, 0.04%)</title><rect x="1153.6" y="169" width="0.4" height="23.0" fill="rgb(252,80,6)" rx="2" ry="2" />
+<text text-anchor="" x="1156.57" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Refinements_Intersection@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1591 (1,900,649 samples, 41.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Refinements_Intersection@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1591 (1,900,649 samples, 41.03%)</title><rect x="328.4" y="193" width="484.2" height="23.0" fill="rgb(241,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="331.40" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >Refinements_Intersection@/Users/caj/reps/ga..</text>
+</g>
+<g class="func_g" onmouseover="s('EmptyRBase@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:819 (3,104 samples, 0.07%)')" onmouseout="c()" onclick="zoom(this)">
+<title>EmptyRBase@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:819 (3,104 samples, 0.07%)</title><rect x="10.1" y="265" width="0.8" height="23.0" fill="rgb(250,121,10)" rx="2" ry="2" />
+<text text-anchor="" x="13.10" y="279.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('MeetPartitionStrat@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:194 (36,060 samples, 0.78%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MeetPartitionStrat@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:194 (36,060 samples, 0.78%)</title><rect x="1154.1" y="121" width="9.2" height="23.0" fill="rgb(227,96,14)" rx="2" ry="2" />
+<text text-anchor="" x="1157.13" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('InfoDecision@/Users/caj/reps/gap/gap/lib/info.gi:292 (24,441 samples, 0.53%)')" onmouseout="c()" onclick="zoom(this)">
+<title>InfoDecision@/Users/caj/reps/gap/gap/lib/info.gi:292 (24,441 samples, 0.53%)</title><rect x="71.3" y="217" width="6.2" height="23.0" fill="rgb(241,117,29)" rx="2" ry="2" />
+<text text-anchor="" x="74.30" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('InverseRepresentative@/Users/caj/reps/gap/gap/lib/stbc.gi:1242 (414,402 samples, 8.95%)')" onmouseout="c()" onclick="zoom(this)">
+<title>InverseRepresentative@/Users/caj/reps/gap/gap/lib/stbc.gi:1242 (414,402 samples, 8.95%)</title><rect x="210.8" y="169" width="105.5" height="23.0" fill="rgb(226,106,0)" rx="2" ry="2" />
+<text text-anchor="" x="213.75" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >Inverse..</text>
+</g>
+<g class="func_g" onmouseover="s('ExtendedT@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:156 (1,352 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ExtendedT@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:156 (1,352 samples, 0.03%)</title><rect x="1153.7" y="145" width="0.3" height="23.0" fill="rgb(228,208,35)" rx="2" ry="2" />
+<text text-anchor="" x="1156.65" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('IsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:69 (443 samples, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>IsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:69 (443 samples, 0.01%)</title><rect x="1117.8" y="97" width="0.2" height="23.0" fill="rgb(241,37,37)" rx="2" ry="2" />
+<text text-anchor="" x="1120.84" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ExtendedT@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:156 (23,527 samples, 0.51%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ExtendedT@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:156 (23,527 samples, 0.51%)</title><rect x="373.4" y="121" width="6.0" height="23.0" fill="rgb(210,152,27)" rx="2" ry="2" />
+<text text-anchor="" x="376.37" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StabChainForcePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:729 (794 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StabChainForcePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:729 (794 samples, 0.02%)</title><rect x="1148.5" y="73" width="0.2" height="23.0" fill="rgb(251,183,10)" rx="2" ry="2" />
+<text text-anchor="" x="1151.51" y="87.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('OrbitsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:400 (238,740 samples, 5.15%)')" onmouseout="c()" onclick="zoom(this)">
+<title>OrbitsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:400 (238,740 samples, 5.15%)</title><rect x="95.5" y="169" width="60.9" height="23.0" fill="rgb(242,200,22)" rx="2" ry="2" />
+<text text-anchor="" x="98.54" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >Orb..</text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/oprt.gd:628 (56,846 samples, 1.23%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/oprt.gd:628 (56,846 samples, 1.23%)</title><rect x="13.2" y="241" width="14.5" height="23.0" fill="rgb(235,14,29)" rx="2" ry="2" />
+<text text-anchor="" x="16.21" y="255.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1026 (785 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1026 (785 samples, 0.02%)</title><rect x="1153.4" y="121" width="0.2" height="23.0" fill="rgb(212,99,49)" rx="2" ry="2" />
+<text text-anchor="" x="1156.36" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (561 samples, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (561 samples, 0.01%)</title><rect x="157.0" y="145" width="0.1" height="23.0" fill="rgb(224,162,13)" rx="2" ry="2" />
+<text text-anchor="" x="159.98" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (990 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (990 samples, 0.02%)</title><rect x="156.4" y="169" width="0.2" height="23.0" fill="rgb(246,166,41)" rx="2" ry="2" />
+<text text-anchor="" x="159.36" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('NumberCells@/Users/caj/reps/gap/gap/lib/partitio.gi:77 (4,365 samples, 0.09%)')" onmouseout="c()" onclick="zoom(this)">
+<title>NumberCells@/Users/caj/reps/gap/gap/lib/partitio.gi:77 (4,365 samples, 0.09%)</title><rect x="160.6" y="217" width="1.1" height="23.0" fill="rgb(239,78,20)" rx="2" ry="2" />
+<text text-anchor="" x="163.58" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('MovedPointsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:359 (26,144 samples, 0.56%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MovedPointsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:359 (26,144 samples, 0.56%)</title><rect x="1164.7" y="241" width="6.7" height="23.0" fill="rgb(219,12,51)" rx="2" ry="2" />
+<text text-anchor="" x="1167.72" y="255.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('RRefine@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1041 (1,948,074 samples, 42.06%)')" onmouseout="c()" onclick="zoom(this)">
+<title>RRefine@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1041 (1,948,074 samples, 42.06%)</title><rect x="316.3" y="217" width="496.3" height="23.0" fill="rgb(215,47,5)" rx="2" ry="2" />
+<text text-anchor="" x="319.32" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >RRefine@/Users/caj/reps/gap/gap/lib/stbcbckt..</text>
+</g>
+<g class="func_g" onmouseover="s('StratMeetPartition@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:224 (15,450 samples, 0.33%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StratMeetPartition@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:224 (15,450 samples, 0.33%)</title><rect x="156.6" y="169" width="3.9" height="23.0" fill="rgb(246,150,52)" rx="2" ry="2" />
+<text text-anchor="" x="159.61" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('SiftedPermutation@/Users/caj/reps/gap/gap/lib/stbc.gi:1301 (1,312 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>SiftedPermutation@/Users/caj/reps/gap/gap/lib/stbc.gi:1301 (1,312 samples, 0.03%)</title><rect x="1163.9" y="145" width="0.4" height="23.0" fill="rgb(237,206,19)" rx="2" ry="2" />
+<text text-anchor="" x="1166.94" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (884 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (884 samples, 0.02%)</title><rect x="1148.5" y="121" width="0.2" height="23.0" fill="rgb(230,222,28)" rx="2" ry="2" />
+<text text-anchor="" x="1151.49" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('BasePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:1216 (6,250 samples, 0.13%)')" onmouseout="c()" onclick="zoom(this)">
+<title>BasePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:1216 (6,250 samples, 0.13%)</title><rect x="377.7" y="97" width="1.6" height="23.0" fill="rgb(214,6,34)" rx="2" ry="2" />
+<text text-anchor="" x="380.75" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('IsFixedStabilizer@/Users/caj/reps/gap/gap/lib/stbc.gi:1234 (622 samples, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>IsFixedStabilizer@/Users/caj/reps/gap/gap/lib/stbc.gi:1234 (622 samples, 0.01%)</title><rect x="1153.4" y="97" width="0.2" height="23.0" fill="rgb(233,18,3)" rx="2" ry="2" />
+<text text-anchor="" x="1156.40" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/info.gi:281 (4,758 samples, 0.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/info.gi:281 (4,758 samples, 0.10%)</title><rect x="76.3" y="193" width="1.2" height="23.0" fill="rgb(242,225,46)" rx="2" ry="2" />
+<text text-anchor="" x="79.32" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StabChainSwap@/Users/caj/reps/gap/gap/lib/stbc.gi:755 (748 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StabChainSwap@/Users/caj/reps/gap/gap/lib/stbc.gi:755 (748 samples, 0.02%)</title><rect x="156.8" y="73" width="0.2" height="23.0" fill="rgb(249,128,48)" rx="2" ry="2" />
+<text text-anchor="" x="159.79" y="87.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Intersection@/Users/caj/reps/gap/gap/lib/coll.gi:2456 (4,559,011 samples, 98.42%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Intersection@/Users/caj/reps/gap/gap/lib/coll.gi:2456 (4,559,011 samples, 98.42%)</title><rect x="10.0" y="313" width="1161.4" height="23.0" fill="rgb(236,32,30)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="327.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >Intersection@/Users/caj/reps/gap/gap/lib/coll.gi:2456</text>
+</g>
+<g class="func_g" onmouseover="s('RRefine@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1041 (36,574 samples, 0.79%)')" onmouseout="c()" onclick="zoom(this)">
+<title>RRefine@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1041 (36,574 samples, 0.79%)</title><rect x="1154.0" y="169" width="9.3" height="23.0" fill="rgb(224,194,47)" rx="2" ry="2" />
+<text text-anchor="" x="1156.99" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('List@/Users/caj/reps/gap/gap/lib/coll.gi:726 (3,719 samples, 0.08%)')" onmouseout="c()" onclick="zoom(this)">
+<title>List@/Users/caj/reps/gap/gap/lib/coll.gi:726 (3,719 samples, 0.08%)</title><rect x="1081.0" y="193" width="0.9" height="23.0" fill="rgb(238,90,54)" rx="2" ry="2" />
+<text text-anchor="" x="1083.95" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('NextRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:983 (112,494 samples, 2.43%)')" onmouseout="c()" onclick="zoom(this)">
+<title>NextRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:983 (112,494 samples, 2.43%)</title><rect x="1124.9" y="169" width="28.7" height="23.0" fill="rgb(220,109,45)" rx="2" ry="2" />
+<text text-anchor="" x="1127.90" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Partition@/Users/caj/reps/gap/gap/lib/partitio.gi:38 (9,138 samples, 0.20%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Partition@/Users/caj/reps/gap/gap/lib/partitio.gi:38 (9,138 samples, 0.20%)</title><rect x="1146.2" y="97" width="2.3" height="23.0" fill="rgb(206,90,20)" rx="2" ry="2" />
+<text text-anchor="" x="1149.16" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('RegisterRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:947 (111,433 samples, 2.41%)')" onmouseout="c()" onclick="zoom(this)">
+<title>RegisterRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:947 (111,433 samples, 2.41%)</title><rect x="1124.9" y="145" width="28.4" height="23.0" fill="rgb(223,45,10)" rx="2" ry="2" />
+<text text-anchor="" x="1127.92" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ExtendedT@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:156 (1,641 samples, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ExtendedT@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:156 (1,641 samples, 0.04%)</title><rect x="1112.8" y="169" width="0.5" height="23.0" fill="rgb(229,30,34)" rx="2" ry="2" />
+<text text-anchor="" x="1115.84" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (1,603 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (1,603 samples, 0.03%)</title><rect x="1149.1" y="97" width="0.4" height="23.0" fill="rgb(227,139,10)" rx="2" ry="2" />
+<text text-anchor="" x="1152.12" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ChangeStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:1028 (1,207 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ChangeStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:1028 (1,207 samples, 0.03%)</title><rect x="156.7" y="121" width="0.3" height="23.0" fill="rgb(253,164,37)" rx="2" ry="2" />
+<text text-anchor="" x="159.67" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('InverseRepresentative@/Users/caj/reps/gap/gap/lib/stbc.gi:1242 (734 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>InverseRepresentative@/Users/caj/reps/gap/gap/lib/stbc.gi:1242 (734 samples, 0.02%)</title><rect x="1153.8" y="121" width="0.2" height="23.0" fill="rgb(217,192,21)" rx="2" ry="2" />
+<text text-anchor="" x="1156.81" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('OrbitsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:400 (92,477 samples, 2.00%)')" onmouseout="c()" onclick="zoom(this)">
+<title>OrbitsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:400 (92,477 samples, 2.00%)</title><rect x="1124.9" y="121" width="23.6" height="23.0" fill="rgb(252,221,28)" rx="2" ry="2" />
+<text text-anchor="" x="1127.93" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Concatenation@/Users/caj/reps/gap/gap/lib/list.gi:1897 (21,174 samples, 0.46%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Concatenation@/Users/caj/reps/gap/gap/lib/list.gi:1897 (21,174 samples, 0.46%)</title><rect x="323.0" y="193" width="5.4" height="23.0" fill="rgb(236,56,45)" rx="2" ry="2" />
+<text text-anchor="" x="326.01" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StabChainSwap@/Users/caj/reps/gap/gap/lib/stbc.gi:755 (906 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StabChainSwap@/Users/caj/reps/gap/gap/lib/stbc.gi:755 (906 samples, 0.02%)</title><rect x="1108.5" y="49" width="0.2" height="23.0" fill="rgb(253,151,20)" rx="2" ry="2" />
+<text text-anchor="" x="1111.49" y="63.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Refinements_Intersection@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1591 (18,198 samples, 0.39%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Refinements_Intersection@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1591 (18,198 samples, 0.39%)</title><rect x="1113.3" y="169" width="4.7" height="23.0" fill="rgb(234,121,8)" rx="2" ry="2" />
+<text text-anchor="" x="1116.32" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('BasePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:1216 (11,804 samples, 0.25%)')" onmouseout="c()" onclick="zoom(this)">
+<title>BasePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:1216 (11,804 samples, 0.25%)</title><rect x="174.7" y="193" width="3.0" height="23.0" fill="rgb(227,98,8)" rx="2" ry="2" />
+<text text-anchor="" x="177.71" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('InverseRepresentative@/Users/caj/reps/gap/gap/lib/stbc.gi:1242 (1,096 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>InverseRepresentative@/Users/caj/reps/gap/gap/lib/stbc.gi:1242 (1,096 samples, 0.02%)</title><rect x="1113.0" y="145" width="0.3" height="23.0" fill="rgb(248,180,53)" rx="2" ry="2" />
+<text text-anchor="" x="1115.98" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/grpperm.gi:928 (72,814 samples, 1.57%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/grpperm.gi:928 (72,814 samples, 1.57%)</title><rect x="1171.4" y="313" width="18.6" height="23.0" fill="rgb(214,23,41)" rx="2" ry="2" />
+<text text-anchor="" x="1174.41" y="327.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('OrbitsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:400 (65,886 samples, 1.42%)')" onmouseout="c()" onclick="zoom(this)">
+<title>OrbitsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:400 (65,886 samples, 1.42%)</title><rect x="10.9" y="265" width="16.8" height="23.0" fill="rgb(244,121,14)" rx="2" ry="2" />
+<text text-anchor="" x="13.91" y="279.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ChangeStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:1028 (869 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ChangeStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:1028 (869 samples, 0.02%)</title><rect x="1148.5" y="97" width="0.2" height="23.0" fill="rgb(246,81,41)" rx="2" ry="2" />
+<text text-anchor="" x="1151.49" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1151 (330,337 samples, 7.13%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1151 (330,337 samples, 7.13%)</title><rect x="1080.2" y="217" width="84.1" height="23.0" fill="rgb(249,39,32)" rx="2" ry="2" />
+<text text-anchor="" x="1083.16" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >namel..</text>
+</g>
+<g class="func_g" onmouseover="s('IsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:69 (14,447 samples, 0.31%)')" onmouseout="c()" onclick="zoom(this)">
+<title>IsPartition@/Users/caj/reps/gap/gap/lib/partitio.gi:69 (14,447 samples, 0.31%)</title><rect x="808.9" y="121" width="3.7" height="23.0" fill="rgb(224,199,52)" rx="2" ry="2" />
+<text text-anchor="" x="811.90" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('UndoRefinement@/Users/caj/reps/gap/gap/lib/partitio.gi:301 (23,895 samples, 0.52%)')" onmouseout="c()" onclick="zoom(this)">
+<title>UndoRefinement@/Users/caj/reps/gap/gap/lib/partitio.gi:301 (23,895 samples, 0.52%)</title><rect x="1118.1" y="193" width="6.1" height="23.0" fill="rgb(243,130,29)" rx="2" ry="2" />
+<text text-anchor="" x="1121.07" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('MeetPartitionStrat@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:194 (17,970 samples, 0.39%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MeetPartitionStrat@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:194 (17,970 samples, 0.39%)</title><rect x="1113.4" y="145" width="4.6" height="23.0" fill="rgb(233,1,15)" rx="2" ry="2" />
+<text text-anchor="" x="1116.38" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (29,431 samples, 0.64%)')" onmouseout="c()" onclick="zoom(this)">
+<title>SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (29,431 samples, 0.64%)</title><rect x="1155.8" y="97" width="7.5" height="23.0" fill="rgb(221,161,9)" rx="2" ry="2" />
+<text text-anchor="" x="1158.81" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1151 (157,640 samples, 3.40%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1151 (157,640 samples, 3.40%)</title><rect x="1124.2" y="193" width="40.1" height="23.0" fill="rgb(229,110,44)" rx="2" ry="2" />
+<text text-anchor="" x="1127.15" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >n..</text>
+</g>
+<g class="func_g" onmouseover="s('OrbitsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:238 (94,845 samples, 2.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>OrbitsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:238 (94,845 samples, 2.05%)</title><rect x="1082.0" y="121" width="24.1" height="23.0" fill="rgb(232,117,7)" rx="2" ry="2" />
+<text text-anchor="" x="1084.99" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('UndoRefinement@/Users/caj/reps/gap/gap/lib/partitio.gi:301 (983,523 samples, 21.23%)')" onmouseout="c()" onclick="zoom(this)">
+<title>UndoRefinement@/Users/caj/reps/gap/gap/lib/partitio.gi:301 (983,523 samples, 21.23%)</title><rect x="829.6" y="217" width="250.6" height="23.0" fill="rgb(233,68,25)" rx="2" ry="2" />
+<text text-anchor="" x="832.61" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >UndoRefinement@/Users..</text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (606,973 samples, 13.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (606,973 samples, 13.10%)</title><rect x="161.7" y="217" width="154.6" height="23.0" fill="rgb(236,2,51)" rx="2" ry="2" />
+<text text-anchor="" x="164.70" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >ProcessFixpo..</text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/stbc.gi:38 (1,193 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/stbc.gi:38 (1,193 samples, 0.03%)</title><rect x="1164.3" y="193" width="0.3" height="23.0" fill="rgb(227,214,25)" rx="2" ry="2" />
+<text text-anchor="" x="1167.34" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('FixpointCellNo@/Users/caj/reps/gap/gap/lib/partitio.gi:328 (3,828 samples, 0.08%)')" onmouseout="c()" onclick="zoom(this)">
+<title>FixpointCellNo@/Users/caj/reps/gap/gap/lib/partitio.gi:328 (3,828 samples, 0.08%)</title><rect x="365.0" y="145" width="1.0" height="23.0" fill="rgb(229,142,35)" rx="2" ry="2" />
+<text text-anchor="" x="368.00" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('OrbitsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:238 (56,806 samples, 1.23%)')" onmouseout="c()" onclick="zoom(this)">
+<title>OrbitsPerms@/Users/caj/reps/gap/gap/lib/grpperm.gi:238 (56,806 samples, 1.23%)</title><rect x="13.2" y="169" width="14.5" height="23.0" fill="rgb(239,66,28)" rx="2" ry="2" />
+<text text-anchor="" x="16.22" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('RegisterRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:947 (120,830 samples, 2.61%)')" onmouseout="c()" onclick="zoom(this)">
+<title>RegisterRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:947 (120,830 samples, 2.61%)</title><rect x="1082.0" y="169" width="30.8" height="23.0" fill="rgb(224,158,35)" rx="2" ry="2" />
+<text text-anchor="" x="1084.97" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Refinements_Intersection@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1591 (36,311 samples, 0.78%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Refinements_Intersection@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1591 (36,311 samples, 0.78%)</title><rect x="1154.1" y="145" width="9.2" height="23.0" fill="rgb(216,194,16)" rx="2" ry="2" />
+<text text-anchor="" x="1157.06" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StabChainSwap@/Users/caj/reps/gap/gap/lib/stbc.gi:755 (509 samples, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StabChainSwap@/Users/caj/reps/gap/gap/lib/stbc.gi:755 (509 samples, 0.01%)</title><rect x="1108.7" y="73" width="0.1" height="23.0" fill="rgb(230,184,27)" rx="2" ry="2" />
+<text text-anchor="" x="1111.72" y="87.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('PartitionBacktrack@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1131 (4,461,804 samples, 96.32%)')" onmouseout="c()" onclick="zoom(this)">
+<title>PartitionBacktrack@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1131 (4,461,804 samples, 96.32%)</title><rect x="27.7" y="265" width="1136.6" height="23.0" fill="rgb(239,156,33)" rx="2" ry="2" />
+<text text-anchor="" x="30.69" y="279.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >PartitionBacktrack@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1131</text>
+</g>
+<g class="func_g" onmouseover="s('IsInBasicOrbit@/Users/caj/reps/gap/gap/lib/stbc.gi:1225 (24,579 samples, 0.53%)')" onmouseout="c()" onclick="zoom(this)">
+<title>IsInBasicOrbit@/Users/caj/reps/gap/gap/lib/stbc.gi:1225 (24,579 samples, 0.53%)</title><rect x="77.5" y="217" width="6.3" height="23.0" fill="rgb(208,221,32)" rx="2" ry="2" />
+<text text-anchor="" x="80.53" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/list.gi:1941 (13,441 samples, 0.29%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/list.gi:1941 (13,441 samples, 0.29%)</title><rect x="157.1" y="145" width="3.4" height="23.0" fill="rgb(224,101,11)" rx="2" ry="2" />
+<text text-anchor="" x="160.13" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Maximum@/Users/caj/reps/gap/gap/lib/list.gi:2363 (8,150 samples, 0.18%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Maximum@/Users/caj/reps/gap/gap/lib/list.gi:2363 (8,150 samples, 0.18%)</title><rect x="1106.3" y="97" width="2.1" height="23.0" fill="rgb(218,194,48)" rx="2" ry="2" />
+<text text-anchor="" x="1109.34" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (562 samples, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (562 samples, 0.01%)</title><rect x="1155.7" y="97" width="0.1" height="23.0" fill="rgb(246,31,15)" rx="2" ry="2" />
+<text text-anchor="" x="1158.67" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/stbc.gi:64 (1,188 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/stbc.gi:64 (1,188 samples, 0.03%)</title><rect x="1164.3" y="169" width="0.3" height="23.0" fill="rgb(230,132,10)" rx="2" ry="2" />
+<text text-anchor="" x="1167.34" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1151 (2,071 samples, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1151 (2,071 samples, 0.04%)</title><rect x="1163.8" y="169" width="0.5" height="23.0" fill="rgb(250,190,6)" rx="2" ry="2" />
+<text text-anchor="" x="1166.78" y="183.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StratMeetPartition@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:224 (15,329 samples, 0.33%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StratMeetPartition@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:224 (15,329 samples, 0.33%)</title><rect x="1108.8" y="145" width="4.0" height="23.0" fill="rgb(208,225,4)" rx="2" ry="2" />
+<text text-anchor="" x="1111.85" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1151 (4,461,594 samples, 96.32%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1151 (4,461,594 samples, 96.32%)</title><rect x="27.7" y="241" width="1136.6" height="23.0" fill="rgb(240,99,15)" rx="2" ry="2" />
+<text text-anchor="" x="30.75" y="255.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >nameless@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1151</text>
+</g>
+<g class="func_g" onmouseover="s('SubtractBlistOrbitStabChain@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1110 (66,869 samples, 1.44%)')" onmouseout="c()" onclick="zoom(this)">
+<title>SubtractBlistOrbitStabChain@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:1110 (66,869 samples, 1.44%)</title><rect x="812.6" y="217" width="17.0" height="23.0" fill="rgb(250,159,14)" rx="2" ry="2" />
+<text text-anchor="" x="815.58" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StratMeetPartition@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:224 (18,020 samples, 0.39%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StratMeetPartition@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:224 (18,020 samples, 0.39%)</title><rect x="1148.7" y="121" width="4.6" height="23.0" fill="rgb(222,101,28)" rx="2" ry="2" />
+<text text-anchor="" x="1151.71" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Maximum@/Users/caj/reps/gap/gap/lib/list.gi:2363 (8,114 samples, 0.18%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Maximum@/Users/caj/reps/gap/gap/lib/list.gi:2363 (8,114 samples, 0.18%)</title><rect x="1146.4" y="73" width="2.1" height="23.0" fill="rgb(226,127,6)" rx="2" ry="2" />
+<text text-anchor="" x="1149.42" y="87.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('PermGroupStabilizerOp@/Users/caj/reps/gap/gap/lib/oprtperm.gi:1419 (1,234 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>PermGroupStabilizerOp@/Users/caj/reps/gap/gap/lib/oprtperm.gi:1419 (1,234 samples, 0.03%)</title><rect x="1164.3" y="217" width="0.3" height="23.0" fill="rgb(233,44,27)" rx="2" ry="2" />
+<text text-anchor="" x="1167.33" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('IsolatePoint@/Users/caj/reps/gap/gap/lib/partitio.gi:264 (45,310 samples, 0.98%)')" onmouseout="c()" onclick="zoom(this)">
+<title>IsolatePoint@/Users/caj/reps/gap/gap/lib/partitio.gi:264 (45,310 samples, 0.98%)</title><rect x="83.8" y="217" width="11.5" height="23.0" fill="rgb(207,194,34)" rx="2" ry="2" />
+<text text-anchor="" x="86.79" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (1,223 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (1,223 samples, 0.03%)</title><rect x="156.7" y="145" width="0.3" height="23.0" fill="rgb(221,16,44)" rx="2" ry="2" />
+<text text-anchor="" x="159.67" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('StabChainForcePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:729 (1,600 samples, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>StabChainForcePoint@/Users/caj/reps/gap/gap/lib/stbc.gi:729 (1,600 samples, 0.03%)</title><rect x="1108.4" y="97" width="0.4" height="23.0" fill="rgb(239,173,10)" rx="2" ry="2" />
+<text text-anchor="" x="1111.44" y="111.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/list.gi:2387 (8,147 samples, 0.18%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/list.gi:2387 (8,147 samples, 0.18%)</title><rect x="1106.3" y="73" width="2.1" height="23.0" fill="rgb(236,45,54)" rx="2" ry="2" />
+<text text-anchor="" x="1109.34" y="87.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ChangeStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:1028 (972 samples, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ChangeStabChain@/Users/caj/reps/gap/gap/lib/stbc.gi:1028 (972 samples, 0.02%)</title><rect x="156.4" y="145" width="0.2" height="23.0" fill="rgb(236,35,17)" rx="2" ry="2" />
+<text text-anchor="" x="159.37" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/oprt.gd:595 (56,814 samples, 1.23%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/oprt.gd:595 (56,814 samples, 1.23%)</title><rect x="13.2" y="217" width="14.5" height="23.0" fill="rgb(249,89,5)" rx="2" ry="2" />
+<text text-anchor="" x="16.22" y="231.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (502 samples, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>ProcessFixpoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:893 (502 samples, 0.01%)</title><rect x="1113.9" y="121" width="0.1" height="23.0" fill="rgb(211,18,20)" rx="2" ry="2" />
+<text text-anchor="" x="1116.91" y="135.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('RegisterRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:947 (255,248 samples, 5.51%)')" onmouseout="c()" onclick="zoom(this)">
+<title>RegisterRBasePoint@/Users/caj/reps/gap/gap/lib/stbcbckt.gi:947 (255,248 samples, 5.51%)</title><rect x="95.5" y="193" width="65.0" height="23.0" fill="rgb(229,211,43)" rx="2" ry="2" />
+<text text-anchor="" x="98.53" y="207.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >Regi..</text>
+</g>
+<g class="func_g" onmouseover="s('SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (1,700,594 samples, 36.71%)')" onmouseout="c()" onclick="zoom(this)">
+<title>SplitCell@/Users/caj/reps/gap/gap/lib/partitio.gi:174 (1,700,594 samples, 36.71%)</title><rect x="379.4" y="145" width="433.2" height="23.0" fill="rgb(237,177,31)" rx="2" ry="2" />
+<text text-anchor="" x="382.36" y="159.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  >SplitCell@/Users/caj/reps/gap/gap/lib/..</text>
+</g>
+<g class="func_g" onmouseover="s('nameless@/Users/caj/reps/gap/gap/lib/grpperm.gi:454 (26,146 samples, 0.56%)')" onmouseout="c()" onclick="zoom(this)">
+<title>nameless@/Users/caj/reps/gap/gap/lib/grpperm.gi:454 (26,146 samples, 0.56%)</title><rect x="1164.7" y="265" width="6.7" height="23.0" fill="rgb(250,57,4)" rx="2" ry="2" />
+<text text-anchor="" x="1167.72" y="279.5" font-size="18" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+</svg>

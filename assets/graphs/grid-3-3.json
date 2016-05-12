@@ -1,0 +1,87 @@
+{
+ "nodes":[
+  {"name":"V1","group":0}
+,  {"name":"V2","group":0}
+,  {"name":"V3","group":0}
+,  {"name":"V4","group":0}
+,  {"name":"V5","group":0}
+,  {"name":"V6","group":0}
+,  {"name":"V7","group":0}
+,  {"name":"V8","group":0}
+,  {"name":"V9","group":0}
+,  {"name":"V10","group":0}
+,  {"name":"V11","group":0}
+,  {"name":"V12","group":0}
+,  {"name":"V13","group":0}
+,  {"name":"V14","group":0}
+,  {"name":"V15","group":0}
+,  {"name":"V16","group":0}
+,  {"name":"V17","group":0}
+,  {"name":"V18","group":0}
+,  {"name":"V19","group":0}
+,  {"name":"V20","group":0}
+,  {"name":"V21","group":0}
+,  {"name":"V22","group":0}
+,  {"name":"V23","group":0}
+,  {"name":"V24","group":0}
+,  {"name":"V25","group":0}
+,  {"name":"V26","group":0}
+,  {"name":"V27","group":0}
+ ],
+ "links":[
+{"source": 0 , "target":  1 }
+,{"source": 0 , "target":  3 }
+,{"source": 0 , "target":  9 }
+,{"source": 1 , "target":  2 }
+,{"source": 1 , "target":  4 }
+,{"source": 1 , "target":  10 }
+,{"source": 2 , "target":  5 }
+,{"source": 2 , "target":  11 }
+,{"source": 3 , "target":  4 }
+,{"source": 3 , "target":  6 }
+,{"source": 3 , "target":  12 }
+,{"source": 4 , "target":  5 }
+,{"source": 4 , "target":  7 }
+,{"source": 4 , "target":  13 }
+,{"source": 5 , "target":  8 }
+,{"source": 5 , "target":  14 }
+,{"source": 6 , "target":  7 }
+,{"source": 6 , "target":  15 }
+,{"source": 7 , "target":  8 }
+,{"source": 7 , "target":  16 }
+,{"source": 8 , "target":  17 }
+,{"source": 9 , "target":  10 }
+,{"source": 9 , "target":  12 }
+,{"source": 9 , "target":  18 }
+,{"source": 10 , "target":  11 }
+,{"source": 10 , "target":  13 }
+,{"source": 10 , "target":  19 }
+,{"source": 11 , "target":  14 }
+,{"source": 11 , "target":  20 }
+,{"source": 12 , "target":  13 }
+,{"source": 12 , "target":  15 }
+,{"source": 12 , "target":  21 }
+,{"source": 13 , "target":  14 }
+,{"source": 13 , "target":  16 }
+,{"source": 13 , "target":  22 }
+,{"source": 14 , "target":  17 }
+,{"source": 14 , "target":  23 }
+,{"source": 15 , "target":  16 }
+,{"source": 15 , "target":  24 }
+,{"source": 16 , "target":  17 }
+,{"source": 16 , "target":  25 }
+,{"source": 17 , "target":  26 }
+,{"source": 18 , "target":  19 }
+,{"source": 18 , "target":  21 }
+,{"source": 19 , "target":  20 }
+,{"source": 19 , "target":  22 }
+,{"source": 20 , "target":  23 }
+,{"source": 21 , "target":  22 }
+,{"source": 21 , "target":  24 }
+,{"source": 22 , "target":  23 }
+,{"source": 22 , "target":  25 }
+,{"source": 23 , "target":  26 }
+,{"source": 24 , "target":  25 }
+,{"source": 25 , "target":  26 }
+ ]
+}
