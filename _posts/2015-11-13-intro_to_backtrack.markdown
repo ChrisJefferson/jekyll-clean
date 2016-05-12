@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Introduction to Backtrack Search
-category: Algorithms
+tags: Algorithms
 ---
 
 This is the first in a series of articles which will explore backtracking search in permutation groups. To begin, these articles will concentrate on the theory of backtracking, rather than highly-optimised implementations.

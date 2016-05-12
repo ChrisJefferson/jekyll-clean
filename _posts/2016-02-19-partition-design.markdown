@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Introduction to Partitions
-category: Algorithms
+tags: Algorithms
 ---
 
 

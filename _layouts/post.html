@@ -8,7 +8,21 @@
         <div class="col-md-9">
           <div class="article">
             <div class="well">
-                <h1><a href="{{ site.baseurl}}{{ page.url }}">{{ page.date | date: "%b %-d, %Y" }} - {{ page.title }}</a></h1>
+                <h1><a href="{{ site.baseurl}}{{ page.url }}">{{ page.title }} </a> - <a href="{{ site.baseurl}}{{ page.url }}">{{ page.date | date: "%b %-d, %Y" }}</a>
+                <span class="post-tags" itemprop="keywords" content="{{ page.tags | array_to_sentence_string }}">
+                  {% for tag in page.tags %}
+                    {% if forloop.first %}
+                      - <i class="fa fa-tags" title="page tags"></i>
+                    {% endif %}
+                      <a href="/tags.html#{{ tag | cgi_escape }}" title="Pages tagged {{ tag }}" rel="tag">
+                        {{ tag }}
+                      </a>
+                    {% unless forloop.last %}
+                      &bull;
+                    {% endunless %}
+                  {% endfor %}
+                </span>
+              </a></h1>
             {% if site.comments and page.comments %}
                 {% if site.disqus != '' %}
                 <p class="author"><a href="#disqus_thread" data-disqus-identifier="{{ page.url | slugify }}">Comments</a></p>

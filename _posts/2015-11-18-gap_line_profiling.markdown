@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Line by Line Profiling in GAP
-category: GAP
+tags: GAP
 ---
 
 The purpose of this article is to show how to use GAP's new line-by-line profiler / code coverage. Firstly, you need gap version at least 4.8.0. As this isn't out at time of writing (but it might be by the time you read this!) you will need to [build a development version of gap]({% post_url 2015-11-18-building_git_gap %}). Go and do that first. Done? Great!

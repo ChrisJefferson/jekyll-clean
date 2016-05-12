@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Search Reduction 2
-category: Algorithms
+tags: Algorithms
 ---
 
 

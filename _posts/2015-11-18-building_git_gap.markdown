@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Building a development version of GAP
-category: GAP
+tags: GAP
 ---
 
 For many years, the development process of GAP was not open to the general public. Now you can see (and contribute to!) the day-to-day development at GAP's [github page](https://www.github.com/gap-system/gap). This page will show you how to install GAP's development version.

@@ -1,7 +1,7 @@
 # Jekyll configuration
 
 name: AzumangaBlog
-description: A jekyll theme
+description: ''
 
 # url is currently only used only for the RSS feed in feed.xml
 url: http://azumanga.org
@@ -40,7 +40,6 @@ kramdown:
 
 gems:
   - jekyll-paginate
-  - jekyll-assets
 
 
 exclude: ['README.md', 'LICENSE']

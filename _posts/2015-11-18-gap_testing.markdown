@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Adding new GAP Tests
-categories: GAP Profiling Testing
+tags: GAP Profiling Testing
 ---
 
 The purpose of this article is to show how to write tests in GAP. We will look at how to use GAP's new line-by-line profiler / code coverage to find untested code, and add a test.

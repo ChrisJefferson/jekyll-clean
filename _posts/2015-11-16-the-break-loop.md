@@ -1,7 +1,7 @@
 ---
 layout: post
 title: The Break Loop
-category: GAP
+tags: GAP
 ---
 
 Spend any amount of time in GAP, and eventually you will hit the break loop. Here is an example:
