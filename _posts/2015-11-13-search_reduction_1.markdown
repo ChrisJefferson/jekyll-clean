@@ -174,7 +174,7 @@ Let's try running our function:
 
 {% highlight gap %}
 SetInfoLevel(InfoGroup, 3);
-FindExtendingElement([GroupChecker(G), GroupChecker(H)], 6, [3])
+FindExtendingElement([GroupChecker(G), GroupChecker(H)], 6, [3]);
 #I  FEE: Extending [ 3 ] with another point
 #I  FEE: No permutation for group 2 for [ 3, 1 ]
 #I  FEE: Extending [ 3, 2 ] with another point
@@ -194,7 +194,7 @@ FindExtendingElement([GroupChecker(G), GroupChecker(H)], 6, [3])
 #I  FEE: No permutation for group 1 for [ 3, 2, 1, 4, 5, 4 ]
 #I  FEE: No permutation for group 1 for [ 3, 2, 1, 4, 5, 5 ]
 #I  FEE: Found (1,3)
-(1,3)
+# (1,3)
 {% endhighlight %}
 
 One nice thing about our algorithm -- no part of it requires we intersect
@@ -229,7 +229,7 @@ BasicIntersectionLoop := function(G, H, n, pnt)
   # Now look for coset representatives
   cosetreps := [];
   for i in [pnt + 2..n] do
-    rep := FindExtendingElement([GroupChecker(G), GroupChecker(H), n,
+    rep := FindExtendingElement([GroupChecker(G), GroupChecker(H)], n,
                                 Concatenation([1..pnt], [i]));
     if rep <> fail then
       Add(cosetreps, rep);

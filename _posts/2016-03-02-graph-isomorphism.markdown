@@ -97,7 +97,89 @@ Now, this process doesn't always work -- there are graphs with only the trivial 
 loadGraph("#graph3","/assets/graphs/Frucht.json");
 </script>
 
-There are methods of filtering the Frucht graph. For example, some vertices have two connected neighbours, while other vertices have three disconnected neighbours. However, for now let us stop filtering, and move on to our next phase -- backtrack search.
+There are methods of filtering the Frucht graph. For example, some vertices have two connected neighbours, while other vertices have three disconnected neighbours. For now, let's consider how we can implement the most simple kind of filtering.
 
 G-invariant functions
 =====================
+
+{% highlight gap %}
+filterGraph := function(cells, digraph)
+    local celllist, filter, f, edge;
+    celllist := CellsToList(cells);
+    # Start making a lists of lists, whose
+    # first member is the original cell number
+    filter := List(celllist, x -> [x]);
+    # Add each edge
+    for edge in DigraphEdges(digraph) do
+        Add(filter[edge[1]], [ 1, celllist[edge[2]] ]);
+        Add(filter[edge[2]], [-1, celllist[edge[1]] ]);
+    od;
+    for f in filter do
+        Sort(f);
+    od;
+    return ListToCells(filter);
+end;
+{% endhighlight %}
+
+
+{% highlight gap %}
+fullyPropagateConstraints := function(cells, conlist)
+    local cellcount, con;
+
+    # Make -1 to force at least one loop to occur
+    cellcount := -1;
+    while cellcount <> Length(cells) do
+        cellcount := Length(cells);
+        for con in conlist do
+            cells := con(cells);
+        od;
+    od;
+    return cells;
+end;
+{% endhighlight %}
+
+{% highlight gap %}
+conList := [ x -> filterGraph(x, d1), x -> filterGraph(x, d2) ];;
+fullyPropagateConstraints([[1..5]], conList);
+{% endhighlight %}
+
+
+{% highlight gap %}
+branchFirstCell := cells -> First([1..Length(cells)], x -> Size(cells[x]) > 1);
+branchSmallCell := function(cells)
+    local bestindex, bestsize, i;
+    bestindex := fail;
+    bestsize := infinity;
+    for i in [1..Length(cells)] do
+        if Size(cells[i]) > 1 and Size(cells[i]) < bestsize then
+            bestindex := i;
+            bestsize := Size(cells[i]);
+        fi;
+    od;
+    return bestindex;
+end;
+{% endhighlight %}
+
+
+{% highlight gap %}
+# rBase := rec( refinedCells := , branchCell := , branchValue := , nextLevel := )
+
+buildrBase := function(cells, constraintList, branchOrder)
+    local rBaseRoot, rBase, branchCell;
+    rBaseRoot := rec();
+    rBase := rBaseRoot;
+    while true do
+        cells := fullyPropagateConstraints(cells, constraintList);
+        branchCell := branchOrder(cells);
+        rBase.cells := StructuralCopy(cells);
+        if branchCell = fail then
+            return rBaseRoot;
+        fi;
+        rBase.branchCell := branchCell;
+        rBase.branchValue := Minimum(cells[branchCell]);
+        cells := FixPoint(cells, rBase.branchValue);
+        rBase.nextLevel := rec();
+        rBase := rBase.nextLevel;
+    od;
+end;
+{% endhighlight %}
