@@ -8,27 +8,27 @@ This is the first in a series of articles which will explore backtracking search
 
 If you have any comments or corrections on these pieces, or just enjoyed reading them and want more, please [e-mail me](mailto:caj21@st-andrews.ac.uk).
 
-I will assume you are familiar at least with [permutations](https://en.wikipedia.org/wiki/Permutation), [permutation groups](https://en.wikipedia.org/wiki/Permutation_group). Also all code examples will be given in the [GAP](http://gap-system.org/) language. I strongly recommend installing GAP and following along!
+I will assume you are familiar at least with [permutations](https://en.wikipedia.org/wiki/Permutation) and [permutation groups](https://en.wikipedia.org/wiki/Permutation_group). Also all code examples will be given in the [GAP](http://gap-system.org/) language. I strongly recommend installing the latest version of GAP and following along!
 
 Introduction
 ============
 
 Let's dive straight in, and consider the problem of intersecting two permutation groups $$G$$ and $$H$$ on the set $$\Omega = \{1..n\}$$. We will assume we are given $$G$$ and $$H$$ by a set of generators. In GAP, we can give two groups, and find their intersection, as follows: 
 
+<div style="flex-direction: row; display: flex;">
 {% highlight gap %}
 G := Group((1,2,3), (1,2), (1,4)(2,5)(3,6));
 H := Group((1,3,6), (3,6), (1,2)(3,4)(5,6));
 R := Intersection(G,H);
 # Group([ (4,5), (1,3)(4,5), (1,4,3,5)(2,6) ])
 {% endhighlight %}
-
 <aside>
 We will use `#` to show GAP's output
 </aside>
+</div>
 
-How can we implement the ```Intersection``` function? Your first assumption might be that there is some clever mathematical trick we can apply which instantly produces the intersection, but (as far as we currently know) there isn't! Therefore, let's consider some possible implementations.
 
-The most naive implementation would be to generate all permutations in $$G$$, and check if they are in $$H$$:
+How can we implement the ```Intersection``` function? Your first assumption might be that there is some clever mathematical proof, which quickly generates the intersection, but (as far as we currently know) there is not, we have to search through both groups for the members they have in common. Let's begin with the simplest possible implementation of intersection: Generate all permutations in $$G$$, and check if they are in $$H$$:
 
 {% highlight gap %}
 IntersectionEnumerate := function(G1,G2)
@@ -49,9 +49,9 @@ IntersectionEnumerate(G, H);
 
 One obvious problem here is haven't we just changed one piece of magic (```Intersection```) for two different pieces of magic (```for g in G1``` and ```if g in G2```)?
 
-Iterating over the members of a permutation group, checking if a given permutation is in a group, and a number of other important methods (which we will discuss shortly) can all be efficiently implemented using a _base and strong generating set_, also known as a _stabilizer chain_. In a future post we will see how to make stabilizer chains, and how to implement methods like ```g in G1```.
+Iterating over the members of a permutation group, checking if a given permutation is in a group, and finding the members of a group which stabilize a single integer can all be efficiently implemented using a _base and strong generating set_, also known as a _stabilizer chain_. In a future post we will see how to make stabilizer chains, and how to implement methods like ```g in G1```.
 
-If your only interest is worst-case complexity over all permutation groups, ```IntersectionEnumerate``` is surprisingly close to the state of the art! None of the algorithms we will discuss will ever beat this algorithm by very much, for all pairs of groups. However, we can (as you might hope) greatly outperform this algorithm for many pairs of permutation groups.
+If your only interest is worst-case complexity over all permutation groups, ```IntersectionEnumerate``` is surprisingly close to the state of the art! None of the algorithms we will discuss will ever beat this algorithm by very much, in a theoretical sense. However, we can (as you might hope) greatly outperform this algorithm for most real-world problems.
 
 The fundamental idea behind all of our improvements revolve around *backtracking search*, also known as divide-and-conquer. We will take our problem and split it up into sub-problems, which will be (hopefully) easier to solve, and then stitch our answers back together to form the entire group we are looking for.
 
@@ -90,7 +90,7 @@ Stabilizer(G, 1);
 # Group([ (4,6,5), (5,6), (2,3) ])
 {% endhighlight %}
 
-Notice how ```Stabilizer``` has printed out a shorter answer than ```StabPointEnumerate```. These represent the same group, but `Stabilizer` has produced a set of generators, rather than every element of the group.
+Notice how ```Stabilizer``` has printed out a shorter answer than ```StabPointEnumerate```. Both functions outputted the same group, but `Stabilizer` has produced a set of generators, rather than every element of the group.
 
 Back to Backtracking
 ====================
@@ -102,7 +102,7 @@ So, we will split the problem of finding $$G \cap H$$ into pieces, by splitting 
 * ...
 * Find $$p \in G \cap H$$ where $$1^p = n$$.
 
-Let's first consider the first set. A permutation $$p$$ where $$1^p=1$$ is in $$G \cap H$$ where $$1^p=1$$ if and only if it is contained in both ```Stabilizer(G,1)``` and ```Stabilizer(H,1)```. Therefore we just need to find ```Intersection(Stabilizer(G, 1), Stabilizer(H,1))```. While this is another intersection problems, it will be (hopefully) an easier one to solve. Let's call this intersection $$R$$.
+Let's first consider the first set. A permutation $$p$$ where $$1^p=1$$ is in $$G \cap H$$ where $$1^p=1$$ if and only if it is contained in both ```Stabilizer(G,1)``` and ```Stabilizer(H,1)```. Therefore we just need to find ```Intersection(Stabilizer(G, 1), Stabilizer(H,1))```. While this is another intersection problems, it is a smaller problem, and so will (hopefully) be easier to solve. Let's call this intersection $$R$$.
 
 Now we are going to apply a little group theory. We know that $$R \subseteq G \cap H$$. This means we can divide $$G \cap H$$ into a list of cosets of $$R$$. Let's pick a single permutation in some coset of $$R$$ -- for example $$q = (1,3)(4,5)$$ (which we know is in $$G \cap H$$, as we found it earlier during our brute force enumeration).
 
