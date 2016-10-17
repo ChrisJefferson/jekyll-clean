@@ -4,7 +4,7 @@ title: Implementing Graph Isomorphism
 tags: Algorithms
 ---
 
-This post is part of a series of articles about backtrack search in groups. You should really read [intro to backtrack]( {% post_url 2015-11-13-intro_to_backtrack %} ) and [search reduction 1]( {% post_url 2015-11-13-search_reduction_1 %} ) first. This page will discuss implementing a modern graph isomorphism tester. 
+This post is part of a series of articles about backtrack search in groups. You should really read [intro to backtrack]( {% post_url 2016-06-01-intro_to_backtrack %} ) and [search reduction 1]( {% post_url 2015-11-13-search_reduction_1 %} ) first. This page will discuss implementing a modern graph isomorphism tester. 
 
 Before reading this post, you should go and read [about ordered partitions]( {% post_url 2016-02-19-partition-design %} ), or at least be aware of that post. It introduces some important data structures we are going to use here. 
 

@@ -5,7 +5,7 @@ tags: Algorithms
 ---
 
 
-This is the second in a series of articles exploring backtracking search. Be sure to read the [first article]( {% post_url 2015-11-13-intro_to_backtrack %} ) first!. As a reminder, we are looking at how GAP implements intersection:
+This is the second in a series of articles exploring backtracking search. Be sure to read the [first article]( {% post_url 2016-06-01-intro_to_backtrack %} ) first!. As a reminder, we are looking at how GAP implements intersection:
 
 {% highlight gap %}
 # Define two permutation groups

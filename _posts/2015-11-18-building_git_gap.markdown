@@ -8,7 +8,7 @@ For many years, the development process of GAP was not open to the general publi
 
 *WARNING*: While the development version of GAP is usually in a good state (I use it for most of my day-to-day work), it is occasionally broken and some packages may not work. Use at your own risk!
 
-Over time this page will probably get out of date, or not work on some machines. If these instructions don't work, please give me a buzz at [chris@bubblescope.net](mailto:chris@bubblescope.net). I'm going to assume you are happy with working in a unix terminal and moving around directories. If 
+Over time this page will probably get out of date, or not work on some machines. If these instructions don't work, please give me a buzz at [chris@bubblescope.net](mailto:chris@bubblescope.net). I'm going to assume you are happy with working in a unix terminal and moving around directories.
 
 Requirements
 ============
@@ -17,7 +17,7 @@ Getting and building GAP needs a basic set of development tools. These are:
 
 * `git`: For downloading from github (there are GUIs available, but we will use the command line here).
 * `make`: A program used for building large (and small) software projects
-* `gcc` or `clang`: A compiler for the C language (some other compilers might work, but in particular Visual Studio on Windows will not!
+* `gcc` or `clang`: A compiler for the C language (some other compilers might work, but in particular Visual Studio on Windows will not)!
   
   
 Getting these is different on each operating system. Here is the most popular ones. On windows in particular, make sure you follow these instructions!
@@ -25,15 +25,15 @@ Getting these is different on each operating system. Here is the most popular on
 * Mac OS X : The easiest method is to install Xcode from the App Store. After installing it, open a terminal and type `clang`. 
 
 * Linux : You will need to install `gcc`, `make` and `git`. First check if these two programs are already on your system (they often are). If not, you will have to install them. You should look at your linux's documentation, but the two most common methods are:
-** Ubuntu / Debian `sudo apt-get install gcc make git`
-** Redhat / CentOS `sudo yum install gcc make git`
+  * Ubuntu / Debian `sudo apt-get install gcc make git`
+  * Redhat / CentOS `sudo yum install gcc make git`
 
-* Windows : GAP uses a tool called [Cygwin](http://www.cygwin.com), which provides a unix-like environment on windows. Grab the cygwin installer from the Cygin website, and while installing select the packages *TODO* make, gcc and git.
+* Windows : GAP uses a tool called [Cygwin](http://www.cygwin.com), which provides a unix-like environment on windows. Grab the cygwin installer from the Cygin website, and while installing select the packages make, gcc and git.
 
 Installing
 ===========
 
-Firstly, pop to gap's [github page](https://github.com/gap-system/gap). There are many git tutorials out there, but for now let's skip all of that, and just grab the latest git version:
+Now pop along to gap's [github page](https://github.com/gap-system/gap). There are many git tutorials out there, but for now let's skip all of that, and just grab the latest git version:
 
 {% highlight bash %}
 git clone https://github.com/gap-system/gap.git
@@ -61,9 +61,16 @@ And you can get all packages by running
 make bootstrap-pkg-full
 {% endhighlight %}
 
-Note that while this downloads all packages, many packages have to be built before they are useful. Each package has different instructions are some are very hard to build. You can grab [this script](*TODO*), and run it from inside your `pkg` directory, which will try it's best to build as many packages as possible.
+Note that while this downloads all packages, many packages have to be built before they are useful. To build packages, go into the `pkg` directory and then run the `BuildPackages.sh` script:
 
-Assuming everything went well, try now running `bin/gap.sh`, and you should have a working GAP. Well done!
+{% highlight bash %}
+cd pkg
+../bin/BuildPackages.sh
+{% endhighlight %}
+
+If some packages fail to build, don't worry unless you need those packages. Some packages are extremely hard to build, and require extra dependancies. Just ignore the ones which don't work!
+
+Assuming everything went well, try running `bin/gap.sh`, and you should have a working GAP. Well done!
 
 Development Packages
 ====================
@@ -78,11 +85,14 @@ One reason you might be reading this guide is to run development versions of pac
 
 Let's do this with an example -- the profiling package!
 
-{% highlight sh %}
+{% highlight bash %}
 # Assuming we are in the GAP directory
 cd pkg
+# Clean out old package
 rm -rf profiling*
+# Grab new copy
 git clone https://github.com/ChrisJefferson/profiling
+# Build package (this command will build most packages that need compiling)
 cd profiling && ./configure && make
 {% endhighlight %}
 
