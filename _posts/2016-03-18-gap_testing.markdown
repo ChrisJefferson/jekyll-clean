@@ -78,7 +78,7 @@ gap> x;
 {% endhighlight %}
 
 
-Writing good tests
+Writing stable tests
 ------------------
 
 Earlier we mentioned that GAP's test checks the output string, not that the actual objects produced are equivalent. In some cases, this is exactly what we want -- when we are checking how GAP prints for instance. In other cases, it can lead to fragile tests.
