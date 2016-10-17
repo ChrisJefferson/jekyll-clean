@@ -23,13 +23,15 @@ The break loop acts like the debugger in most other languages. So, what can we d
 
 If you just want to get out of the break loop, either type `quit;` or press *ctrl+d*.
 
-Break loops will often say you can `'return;' to continue`, or sometimes tell you that you can return a new value (see example below). My advice is to ignore these options to `return`. They are extremely rarely useful, and a good way to end up with further break loops, or incorrect answers!
+Break loops will often say you can `'return;' to continue`, or sometimes tell you that you can return a new value (see example below), to fix up the broken computation. My advice is to ignore these options to `return`. They are rarely useful, and a good way to end up with further break loops, incorrect answers, or even crashing GAP!
 
 {% highlight gap %}
-gap> 2/0;
+gap> Print(10/0);
 Error, Rational operations: <divisor> must not be zero
-not in any function at line 3 of *stdin*
+not in any function at *stdin*:1
 you can replace <divisor> via 'return <divisor>;'
+brk> return 2;
+5
 {% endhighlight %}
 
 # Exploring what went wrong
@@ -41,20 +43,20 @@ Let's start with some silly code. If you want to follow along, save this to a fi
 {% highlight gap %}
 mult := function(x,y)
   local i;
-	i := x * y;
-	return i;
+  i := x * y;
+  return i;
 end;
 
 f := function(a,b)
   local i,j;
-	i := mult(a,b);
-	j := mult(a,-1);
-	return i * j;
+  i := mult(a,b);
+  j := mult(a,-1);
+  return i * j;
 end;
 
 {% endhighlight %}
 
-Now, let's call our function. If your output doesn't have the files and line numbers don't worry, you are probably using a slightly older version of GAP (this was added in 4.8).
+Now, let's call our function. If your output doesn't have the files and line numbers you are using GAP 4.7 or earlier.
 
 {% highlight gap  %}
 gap> f((1,2),(3,4));
@@ -71,12 +73,12 @@ brk>
 
 From this, we can already see what went wrong:
 
-* We tried to execute `(1,2) * -1` (the use of `*((1,2), -1)` is because GAP internally transforms this into a function call).
+* We tried to execute `(1,2) * -1` 
 * The line which caused the problem was line 3, `x * y`.
 * We ran that code by performing `mult(a,-1)` on line 10.
 * We ran that code by running `f`, which we run from `*stdin*`, which represents the user typing into GAP.
 
-From the break loop we can execute any normal GAP code (you can in fact just continue your session on from inside the break loop, but it's better to exit). We can see the value of variables in the function `mult`. If we try to read a variable without a value, we get a slightly scary message, which tells us that `m` has not got a value yet.
+From the break loop we can execute any normal GAP code. We can see the value of variables in the function `mult`. If we try to read a variable without a value, we get a slightly scary message, which tells us that `i` has not got a value yet.
 
 {% highlight gap %}
 brk> x;
@@ -139,4 +141,14 @@ brk> ShowMethods(5);
 #I  Method 2: ``*: zero integer * additive element with zero'', value: 1*SUM_FLAGS+24
 #I   - 1st argument needs [ "IsInt", "IsZeroCyc" ]
 ....
+{% endhighlight %}
+
+Finally, we should exit the loop. The best idea is to press _ctrl+d_, or type `quit;`. If we try typing `return;`, we get the following, which shows GAP trying to recover, but finding is has no idea what to do with `x * y` (that's what the `no method returned` is referring to).
+
+{% highlight gap %}
+Error, no method returned in
+  i := x * y; at test.g:3 called from
+mult( a, -1 ) at test.g:10 called from
+<function "f">( <arguments> )
+ called from read-eval loop at *stdin*:2
 {% endhighlight %}

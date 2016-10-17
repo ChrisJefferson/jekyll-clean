@@ -8,4 +8,5 @@ group :jekyll_plugins do
   gem 'jekyll-watch'
   gem 'jekyll-babel'
   gem 'jekyll-paginate'
+  gem 'jekyll-livereload'
 end
