@@ -6,27 +6,11 @@ tags: GAP Profiling Testing
 
 The purpose of this article is to show how to write tests in GAP. We will look at how to use GAP's new line-by-line profiler / code coverage to find untested code, and add a test.
 
-*TODO*
-
-https://caj.host.cs.st-andrews.ac.uk/gap-cover/
 
 Installing
-=================
+==========
 
-Hopefully in the near future there will be a new release of GAP with line by line profiling built-in (I will update this page when that happens). For now, you need the latest development version of GAP.
-
-* A working copy of the [latest development version of GAP](https://github.com/gap-system/gap). Be sure to read the documentation to get the packages you will need to get a working basic copy of GAP!
-
-* The [profile package](https://github.com/ChrisJefferson/profiling). To install the package run the following commands from inside GAP's pkg directory.
-
-        :::bash
-        git clone https://github.com/ChrisJefferson/profiling
-        cd profiling && ./configure && make
-
-  You can check everything is working by starting gap and typing ```LoadPackage("profiling");```.
-
-
-Now we are ready to do some code coverage and profiling! We do these profiling and code coverage in almost exactly the same way, the difference is (as you might expect) code coverage does not store any information about how long code took to execute, only that it executed at all.
+I will begin by assuming you have installed GAP, either the latest release, or a [development version]({% post_url 2015-11-18-building_git_gap %})
 
 
 Quickstart Guide

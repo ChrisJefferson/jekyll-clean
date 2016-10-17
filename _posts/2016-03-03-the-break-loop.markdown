@@ -4,7 +4,7 @@ title: The Break Loop
 tags: GAP
 ---
 
-Spend any amount of time in GAP, and eventually you will hit the break loop. Here is an example:
+Spend any amount of time in GAP, and eventually you will hit the break loop. This is the message GAP prints when code breaks, either because of incorrect arguments, or an algorithm has started producing incorrect values. Here is an example:
 
 {% highlight gap %}
 gap> Intersection(1,2);
