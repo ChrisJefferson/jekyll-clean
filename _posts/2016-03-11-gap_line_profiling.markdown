@@ -6,10 +6,12 @@ tags: GAP
 
 The purpose of this article is to show how to use GAP's new line-by-line profiler / code coverage. Firstly, you need gap version at least 4.8.0, or a [build a development version of gap]({% post_url 2015-11-18-building_git_gap %}).
 
-Quickstart Guide
-===============
+Do you just care which lines of code are executed? Then you should switch to the [coverage guide]({% post_url 2016-03-12-gap_code_coverage %}) (these two guides are very similar!)
 
-We will start with a quick guide to code coverage, with some brief comments. We will explain later how to do these things in greater depth!
+Quickstart Guide
+================
+
+We will start with a quick guide to profiling, with some brief comments. We will explain later how to do these things in greater depth!
 
 Let's start with some code we want to profile. Here I am going to profile the function `f` given below, and use a group from `atlas`.
 
@@ -56,6 +58,8 @@ FAQ / Problems
 ==============
 
 * `ProfileLineByLine` records wall (also known as clock) time which happens between `ProfileLineByLine` and the next `UnprofileLineByLine`. This is why we put starting profiling, our code, and then stopping profile on a single line.
+
+* If you want to profile how long everything in GAP takes, including the startup, then you can given the command line option `--prof <filename>` when starting GAP. This is equivalent to GAP calling `ProfileLineByLine("<filename>");` before loading any of the standard library (obviously, give your own filename).
 
 * Giving your output file the `gz` extension makes GAP automatically compress the file. This is a great idea, because the files can get very big otherwise! Even then, the files can grow quite large very quickly, keep an eye on them.
 
