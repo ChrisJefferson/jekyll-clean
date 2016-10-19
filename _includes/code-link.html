@@ -1,8 +1,8 @@
 {% capture filename %}downloads/code/{{include.file}}{% endcapture %}
 {% highlight gap %}
-{% include_absolute filename %}
+{% include_absolute downloads/code/{{include.file}} %}
 {% endhighlight %}
 
-<a class="btn btn-primary" href="/downloads/code/{{ include.file }})">
+<a class="btn btn-primary" href="/downloads/code/{{ include.file }}">
    Download {{ include.file }}
 </a>
