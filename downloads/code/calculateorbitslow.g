@@ -1,6 +1,7 @@
 CalculateOrbitSlow := function(G, point)
-    local knownOrbit, gens, p, g;
-    gens := GeneratorsOfGroup(G);
+    local knownOrbit, p, g, gens;
+    gens := GeneratorsOfGroup(g);
+    
     knownOrbit := [point];
     for p in knownOrbit do
         for g in gens do

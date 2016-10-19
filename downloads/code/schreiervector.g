@@ -1,19 +1,21 @@
 CalculateSchreier := function(G, point)
-    local knownOrbit, vector, gens, p, g;
+    local knownOrbit, vector, img, p, g, gens;
     gens := GeneratorsOfGroup(G);
-    invgens := List(gens, x -> x^-1);
+    
     vec := [];
-
     knownOrbit := [point];
-    vec[point] := -1;
+    vec[point] := ();
 
     for p in knownOrbit do
         for g in [1..Length(gens)] do
-            if not(Bound(vec[p^gens[g]])) then
-                vec[p^gens[g]] = invgens[g];
-                Add(knownOrbit, p^gens[g]);
+            img := p^gens[g];
+            if not(Bound(vec[img])) then
+                vec[img] = g;
+                Add(knownOrbit, img);
             fi;
         od;
     od;
-    return rec(orbit := knownOrbit, schreier := vector);
+    return rec(gens := gens, 
+               orbit := knownOrbit,
+               schreier := vector);
 end;
