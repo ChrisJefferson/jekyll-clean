@@ -18,27 +18,12 @@ Quickstart Guide
 
 GAP's test file format looks like the result of running gap. This is intensional. Here is an example test file which tests the `+` operator. We have purposefully added two tests which are incorrect, `1 + 0` (which isn't `6`) and the final test (which is formatted incorrectly).
 
-{% highlight gap %}
-gap> 1 + 2;
-3
-gap> 1 + (-1);
-0
-gap> 1 + 0;
-6
-gap> [1,2] + 10;
-[ 11, 12 ]
-gap> [1,2] + [20,30];
-[ 21, 32 ]
-gap> [] + [];
-[  ]
-gap> [1] + [2];
-[3]
-{% endhighlight %}
+{% include code-link.html lang="gap" file="gapsimpletest.tst" %}
 
-If you save this to a file called `gap.tst`, you can run it as follows, and see the failing tests.
+If you save this to a file called `gapsimpletest.tst`, you can run it as follows, and see the failing tests.
 
 {% highlight gap %}
-gap> Test("gap.tst");
+gap> Test("gapsimpletest.tst");
 ########> Diff in gap.tst:5
 # Input is:
 1 + 0;
@@ -113,8 +98,32 @@ gap> Intersection(SymmetricGroup(40), AlternatingGroup(20)) = AlternatingGroup(2
 true
 {% endhighlight %}
 
-It is perfectly legal to use `Read` to read other code while testing. One technique I often use is to write functions which should output nothing if the tests succeed. This combines well with the next section.
+It is perfectly legal to use `Read` to read other code while testing. One technique I often use is to write functions which should output nothing if the tests succeed. Firstly, we will write a file with functions which test intersection. If these functions succeed, they will print nothing
 
+{% include code-link.html lang="gap" file="testintersect.g" %}
+
+Then we can write a trivial test which makes sure this function runs correctly, and prints nothing.
+{% highlight gap %}
+gap> Read("testintersect.g");;
+gap> testIntersect();
+{% endhighlight %}
+
+Is generating many random inputs worthwhile? Yes! Here is a bug which was fixed in GAP -- the following code didn't work:
+
+{% highlight gap %}
+Stabilizer(SymmetricGroup(5), [1,2,1,2], OnTuples);
+# Should be:  Group([(3,5),(4,5)])
+# Used to be: Group(())
+{% endhighlight %}
+
+This code was broken in GAP 4.7.5 when:
+
+* Stabilizing a symmetric or alternating permutation group
+* Which GAP knew was a symmetric or alternating group
+* Using `OnTuples`
+* With repeated integers in the tuple
+
+It is very unlikely (I think) someone would have manually constructed a test that hit this case -- but it is easy to hit it if you just brute force randomly chosen groups and lists!
 
 Testing projects
 ----------------
