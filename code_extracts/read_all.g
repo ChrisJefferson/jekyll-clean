@@ -1,0 +1,13 @@
+Read("2015-11-18-building_git_gap.markdown.g");
+Read("2016-03-03-the-break-loop.markdown.g");
+Read("2016-03-11-gap_line_profiling.markdown.g");
+Read("2016-03-12-gap_code_coverage.markdown.g");
+Read("2016-03-18-gap_testing.markdown.g");
+Read("2016-06-01-intro_to_backtrack.markdown.g");
+Read("2016-10-18-introduction_to_perm_group_algorithms.markdown.g");
+Read("2015-11-13-search_reduction_1.markdown.g");
+Read("2015-11-15-gap-types-and-filters.md.g");
+Read("2016-01-20-common-mistakes-with-gap-s-memory-manager.md.g");
+Read("2016-02-19-partition-design.markdown.g");
+Read("2016-03-02-graph-isomorphism.markdown.g");
+Read("2016-03-22-search_reduction_2.markdown.g");
